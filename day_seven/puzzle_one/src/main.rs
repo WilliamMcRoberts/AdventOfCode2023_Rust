@@ -1,4 +1,6 @@
 #![feature(slice_flatten)]
+use itertools::Itertools;
+use std::ops::Deref;
 use std::{collections::HashMap, fs::read_to_string};
 
 #[derive(Debug)]
@@ -6,141 +8,76 @@ use std::{collections::HashMap, fs::read_to_string};
 struct Hand {
     cards: String,
     bid: u32,
-    hand_type: PossibleHands,
+    hand_type: HandType,
     hand_map: HashMap<char, u32>,
     position_value_map: Vec<u32>,
 }
 
-#[derive(Debug)]
-enum PossibleHands {
-    HighCard,
-    OnePair,
-    TwoPair,
-    ThreeOfAKind,
-    FullHouse,
-    FourOfAKind,
-    FiveOfAKind,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+enum HandType {
+    HighCard = 6,
+    OnePair = 5,
+    TwoPair = 4,
+    ThreeOfAKind = 3,
+    FullHouse = 2,
+    FourOfAKind = 1,
+    FiveOfAKind = 0,
 }
 
 fn main() {
     let lines = read_to_string("../aoc_day_7").expect("No File Found");
 
-    let mut five_of_a_kind: Vec<Hand> = Vec::new();
-    let mut four_of_a_kind: Vec<Hand> = Vec::new();
-    let mut full_house: Vec<Hand> = Vec::new();
-    let mut three_of_a_kind: Vec<Hand> = Vec::new();
-    let mut two_pair: Vec<Hand> = Vec::new();
-    let mut one_pair: Vec<Hand> = Vec::new();
-    let mut high_card: Vec<Hand> = Vec::new();
+    fn score_hand(hand: &str) -> (HandType, (u32, u32, u32, u32, u32)) {
+        use HandType::*;
 
-    for line in lines.lines() {
-        let mut sections = line.split_whitespace();
-        let hand = sections.next().unwrap();
-        let bid = sections.next().unwrap().parse::<i32>().unwrap();
+        let counts = hand.chars().counts();
+        let values = counts.values().sorted().join("");
 
-        let mut position_value_map = vec![0; 5];
+        let hand_type = match values.deref() {
+            "5" => FiveOfAKind,
+            "14" => FourOfAKind,
+            "23" => FullHouse,
+            "113" => ThreeOfAKind,
+            "122" => TwoPair,
+            "1112" => OnePair,
+            "11111" => HighCard,
+            value => panic!("Something went wrong. Encountered `{}`", value),
+        };
 
-        let mut hand_map = HashMap::new();
-
-        for (i, c) in hand.chars().enumerate() {
-            hand_map
-                .entry(c)
-                .and_modify(|counter| *counter += 1)
-                .or_insert(1);
-            position_value_map[i] = match c {
+        let card_scores_vec: Vec<u32> = hand
+            .chars()
+            .map(|c| match c {
                 'A' => 14,
                 'K' => 13,
                 'Q' => 12,
                 'J' => 11,
                 'T' => 10,
                 num => num.to_digit(10).unwrap(),
-            };
-        }
+            })
+            .collect();
 
-        for (i, value) in position_value_map.iter().enumerate() {
-            println!("{}: {}", i, value);
-        }
-
-        match hand_map.len() {
-            5 => {
-                high_card.push(Hand {
-                    cards: hand.to_string(),
-                    bid: bid as u32,
-                    hand_type: PossibleHands::HighCard,
-                    position_value_map,
-                    hand_map,
-                });
-            }
-            4 => {
-                one_pair.push(Hand {
-                    cards: hand.to_string(),
-                    bid: bid as u32,
-                    hand_type: PossibleHands::OnePair,
-                    position_value_map,
-                    hand_map,
-                });
-            }
-            3 => {
-                if hand_map.values().any(|&x| x == 3) {
-                    three_of_a_kind.push(Hand {
-                        cards: hand.to_string(),
-                        bid: bid as u32,
-                        hand_type: PossibleHands::ThreeOfAKind,
-                        position_value_map,
-                        hand_map,
-                    });
-                } else {
-                    two_pair.push(Hand {
-                        cards: hand.to_string(),
-                        bid: bid as u32,
-                        hand_type: PossibleHands::TwoPair,
-                        position_value_map,
-                        hand_map,
-                    });
-                }
-            }
-            2 => {
-                if hand_map.values().any(|&x| x == 4) {
-                    four_of_a_kind.push(Hand {
-                        cards: hand.to_string(),
-                        bid: bid as u32,
-                        hand_type: PossibleHands::FourOfAKind,
-                        position_value_map,
-                        hand_map,
-                    });
-                } else {
-                    full_house.push(Hand {
-                        cards: hand.to_string(),
-                        bid: bid as u32,
-                        hand_type: PossibleHands::FullHouse,
-                        position_value_map,
-                        hand_map,
-                    });
-                }
-            }
-            _ => {
-                five_of_a_kind.push(Hand {
-                    cards: hand.to_string(),
-                    bid: bid as u32,
-                    hand_type: PossibleHands::FiveOfAKind,
-                    position_value_map,
-                    hand_map,
-                });
-            }
-        };
+        (
+            hand_type,
+            (
+                card_scores_vec[0],
+                card_scores_vec[1],
+                card_scores_vec[2],
+                card_scores_vec[3],
+                card_scores_vec[4],
+            ),
+        )
     }
 
-    let hands = five_of_a_kind
-        .into_iter()
-        .chain(four_of_a_kind.into_iter())
-        .chain(full_house.into_iter())
-        .chain(three_of_a_kind.into_iter())
-        .chain(two_pair.into_iter())
-        .chain(one_pair.into_iter())
-        .chain(high_card.into_iter())
-        .collect::<Vec<Hand>>();
+    let sum = lines
+        .lines()
+        .map(|line| {
+            let (hand, bid) = line.split_once(" ").unwrap();
+            (hand, bid.parse::<u32>().unwrap(), score_hand(hand))
+        })
+        .sorted_by_key(|x| (x.2 .0 as u8, x.2 .1))
+        .enumerate()
+        .map(|(index, (_hand, bid, _))| (index as u32 + 1) * bid)
+        .sum::<u32>();
 
-    for hand in hands {
-        println!("{:?}", hand);
-    }
+    println!("Sum: {}", sum);
 }
