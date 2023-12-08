@@ -8,7 +8,7 @@ struct Hand {
     bid: u32,
     hand_type: PossibleHands,
     hand_map: HashMap<char, u32>,
-    position_value_map: HashMap<u8, u8>,
+    position_value_map: Vec<u32>,
 }
 
 #[derive(Debug)]
@@ -38,7 +38,7 @@ fn main() {
         let hand = sections.next().unwrap();
         let bid = sections.next().unwrap().parse::<i32>().unwrap();
 
-        let mut position_value_map: HashMap<u8, u8> = HashMap::new();
+        let mut position_value_map = vec![0; 5];
 
         let mut hand_map = HashMap::new();
 
@@ -47,29 +47,26 @@ fn main() {
                 .entry(c)
                 .and_modify(|counter| *counter += 1)
                 .or_insert(1);
-            position_value_map.insert(
-                i as u8,
-                match c {
-                    'A' => 13,
-                    'K' => 12,
-                    'Q' => 11,
-                    'J' => 10,
-                    'T' => 9,
-                    '9' => 8,
-                    '8' => 7,
-                    '7' => 6,
-                    '6' => 5,
-                    '5' => 4,
-                    '4' => 3,
-                    '3' => 2,
-                    '2' => 1,
-                    _ => 0,
-                },
-            );
+            position_value_map[i] = match c {
+                'A' => 13,
+                'K' => 12,
+                'Q' => 11,
+                'J' => 10,
+                'T' => 9,
+                '9' => 8,
+                '8' => 7,
+                '7' => 6,
+                '6' => 5,
+                '5' => 4,
+                '4' => 3,
+                '3' => 2,
+                '2' => 1,
+                _ => 0,
+            };
         }
 
-        for (key, value) in &position_value_map {
-            println!("{}: {}", key, value);
+        for (i, value) in position_value_map.iter().enumerate() {
+            println!("{}: {}", i, value);
         }
 
         match hand_map.len() {
