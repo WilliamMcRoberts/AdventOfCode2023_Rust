@@ -137,4 +137,18 @@ fn main() {
             }
         };
     }
+
+    let hands = five_of_a_kind
+        .into_iter()
+        .chain(four_of_a_kind.into_iter())
+        .chain(full_house.into_iter())
+        .chain(three_of_a_kind.into_iter())
+        .chain(two_pair.into_iter())
+        .chain(one_pair.into_iter())
+        .chain(high_card.into_iter())
+        .collect::<Vec<Hand>>();
+
+    for hand in hands {
+        println!("{:?}", hand);
+    }
 }
