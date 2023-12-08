@@ -48,20 +48,12 @@ fn main() {
                 .and_modify(|counter| *counter += 1)
                 .or_insert(1);
             position_value_map[i] = match c {
-                'A' => 13,
-                'K' => 12,
-                'Q' => 11,
-                'J' => 10,
-                'T' => 9,
-                '9' => 8,
-                '8' => 7,
-                '7' => 6,
-                '6' => 5,
-                '5' => 4,
-                '4' => 3,
-                '3' => 2,
-                '2' => 1,
-                _ => 0,
+                'A' => 14,
+                'K' => 13,
+                'Q' => 12,
+                'J' => 11,
+                'T' => 10,
+                num => num.to_digit(10).unwrap(),
             };
         }
 
